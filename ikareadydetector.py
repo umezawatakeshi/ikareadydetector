@@ -5,11 +5,11 @@
 import cv2
 from time import sleep
 
-# 1280x720 での「準備OK？」の領域
-top=506
-left=256
-bottom=544
-right=394
+# 640x360 での「準備OK？」の領域
+top=253
+left=128
+bottom=272
+right=197
 
 # ソース画像を比較関数に渡す前にかけるフィルタ
 def pre_diff_filter(src):
@@ -35,6 +35,7 @@ def getch(src):
 
 
 tmpl = cv2.imread("template.png")
+tmpl = cv2.resize(tmpl, (640, 360), cv2.INTER_CUBIC)
 tmpl = pre_diff_filter(tmpl)
 
 cap = cv2.VideoCapture(1)
@@ -47,23 +48,27 @@ while True:
 		print("cannot read from capture")
 		break
 
-	# 入力画像を 1280x720 に変換する
-	# 非常にやっつけコード
+	# 入力画像を 16:9 にクロップしてから 640x360 にリサイズする
 	caph, capw, *_ = captured.shape
-	if capw == 640 and caph == 480:
-		captured = captured[60:420]
-		caph = 360
-	if caph == 360:
-		captured = cv2.resize(captured, (1280, 720), cv2.INTER_CUBIC)
+	if capw * 9 < caph * 16:
+		bandh = (caph - capw * 9 // 16) // 2;
+		captured = captured[bandh:caph-bandh]
+		caph -= bandh * 2
+	elif capw * 9 > caph * 16:
+		bandw = (capw - caph * 16 // 9) // 2;
+		captured = captured[0:caph, bandw:capw-bandw]
+		capw -= bandw * 2
+	if capw != 640:
+		captured = cv2.resize(captured, (640, 360), cv2.INTER_CUBIC)
 
 	# テンプレート画像との差異を計算して検出
 	# 検出結果は画像下部に描画
 	img = pre_diff_filter(captured)
 	diff = cv2.absdiff(img, tmpl).sum() * 1.0 / (bottom-top) / (right-left) / getch(img)
-	cv2.putText(captured, "diff=%6.2f" % diff, (0, 720), cv2.FONT_HERSHEY_PLAIN, 4, (255, 255, 255), 4)
-	detected = diff < 20
+	cv2.putText(captured, "diff=%6.2f" % diff, (0, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+	detected = diff < 2.0
 	if detected:
-		cv2.putText(captured, "READY?", (640, 720), cv2.FONT_HERSHEY_PLAIN, 4, (255, 255, 255), 4)
+		cv2.putText(captured, "READY?", (320, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
 
 	# ウィンドウに描画
 	cv2.imshow('Ika Private Match Ready Detector', pre_show_filter(captured))
