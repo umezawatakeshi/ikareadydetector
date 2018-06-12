@@ -34,7 +34,7 @@ def getch(src):
 		return ch[0]
 
 
-tmpl = cv2.imread("template.png")
+tmpl = cv2.imread("templates/ready.png")
 tmpl = cv2.resize(tmpl, (640, 360), cv2.INTER_CUBIC)
 tmpl = pre_diff_filter(tmpl)
 
