@@ -5,41 +5,36 @@
 import cv2
 from time import sleep
 
-# 640x360 での「準備OK？」の領域
-top=253
-left=128
-bottom=272
-right=197
+class Matcher:
+	@staticmethod
+	def pre_filter(src):
+		tmp = src
+		tmp = cv2.cvtColor(tmp, cv2.COLOR_BGR2GRAY)
+		_, tmp = cv2.threshold(tmp, 192, 255, cv2.THRESH_BINARY)
+		return tmp
 
-# ソース画像を比較関数に渡す前にかけるフィルタ
-def pre_diff_filter(src):
-	tmp = src
-	tmp = tmp[top:bottom, left:right]
-	tmp = cv2.cvtColor(tmp, cv2.COLOR_BGR2GRAY)
-	ret, tmp = cv2.threshold(tmp, 192, 255, cv2.THRESH_BINARY)
-	return tmp
+	def __init__(self, filename, top, left, bottom, right):
+		tmp = cv2.imread(filename)
+		tmp = cv2.resize(tmp, (640, 360), cv2.INTER_CUBIC)
+		tmp = Matcher.pre_filter(tmp)
+		tmp = tmp[top:bottom, left:right]
+		self.img = tmp
+		self.top = top
+		self.left = left
+		self.bottom = bottom
+		self.right = right
+		self.pixels = (bottom - top) * (right - left)
 
-# ソース画像をウィンドウに表示する前にかけるフィルタ（デバッグ向け）
-def pre_show_filter(src):
-	tmp = src
-	return tmp
-
-# 画像のチャンネル数を取得する
-# .shape がグレースケールだと 2-tuple、カラーだと 3-tuple を返すのを吸収する
-def getch(src):
-	h, w, *ch = src.shape
-	if len(ch) == 0:
-		return 1
-	else:
-		return ch[0]
+	def match(self, src):
+		tgt = src[self.top:self.bottom, self.left:self.right]
+		diff = cv2.absdiff(tgt, self.img).sum() * 1.0 / self.pixels
+		return (diff < 2.0, diff)
 
 
-tmpl = cv2.imread("templates/ready.png")
-tmpl = cv2.resize(tmpl, (640, 360), cv2.INTER_CUBIC)
-tmpl = pre_diff_filter(tmpl)
+tmpl_ready = Matcher("templates/ready.png", 253, 128, 272, 197)
 
 cap = cv2.VideoCapture(1)
-#cap = cv2.VideoCapture("D:\\cap\\amarec(20180519-2234).avi")
+#cap = cv2.VideoCapture("amarec(20180519-2234).avi")
 #cap = cv2.VideoCapture("test2.avi")
 
 while True:
@@ -63,15 +58,14 @@ while True:
 
 	# テンプレート画像との差異を計算して検出
 	# 検出結果は画像下部に描画
-	img = pre_diff_filter(captured)
-	diff = cv2.absdiff(img, tmpl).sum() * 1.0 / (bottom-top) / (right-left) / getch(img)
-	cv2.putText(captured, "diff=%6.2f" % diff, (0, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
-	detected = diff < 2.0
-	if detected:
+	img = Matcher.pre_filter(captured)
+	detected_ready, diff_ready = tmpl_ready.match(img)
+	cv2.putText(captured, "diff=%6.2f" % diff_ready, (0, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+	if detected_ready:
 		cv2.putText(captured, "READY?", (320, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
 
 	# ウィンドウに描画
-	cv2.imshow('Ika Private Match Ready Detector', pre_show_filter(captured))
+	cv2.imshow('Ika Private Match Ready Detector', captured)
 
 	# q を押したら終了
 	if cv2.waitKey(1) & 0xFF == ord('q'):
