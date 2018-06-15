@@ -32,9 +32,11 @@ class Matcher:
 
 
 tmpl_ready = Matcher("templates/ready.png", 253, 128, 272, 197)
+tmpl_dfp = Matcher("templates/disconnected_from_parent.png", 175, 256, 195, 384)
 
 cap = cv2.VideoCapture(1)
 #cap = cv2.VideoCapture("amarec(20180519-2234).avi")
+#cap = cv2.VideoCapture("amarec(20180603-0100).avi")
 #cap = cv2.VideoCapture("test2.avi")
 
 while True:
@@ -59,10 +61,16 @@ while True:
 	# テンプレート画像との差異を計算して検出
 	# 検出結果は画像下部に描画
 	img = Matcher.pre_filter(captured)
+
 	detected_ready, diff_ready = tmpl_ready.match(img)
 	cv2.putText(captured, "diff=%6.2f" % diff_ready, (0, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
 	if detected_ready:
 		cv2.putText(captured, "READY?", (320, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+
+	detected_dfp, diff_dfp = tmpl_dfp.match(img)
+	cv2.putText(captured, "diff=%6.2f" % diff_dfp, (0, 330), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+	if detected_dfp:
+		cv2.putText(captured, "DFP", (320, 330), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
 
 	# ウィンドウに描画
 	cv2.imshow('Ika Private Match Ready Detector', captured)
