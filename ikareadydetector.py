@@ -79,6 +79,11 @@ while True:
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
 
+	if detected_dfp:
+		print("exit by dfp")
+		sleep(1)
+		break
+
 	sleep(1)
 
 cap.release()
